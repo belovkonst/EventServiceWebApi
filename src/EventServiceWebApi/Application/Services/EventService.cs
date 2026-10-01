@@ -12,6 +12,9 @@ public class EventService : IEventService
 
     public Task<IReadOnlyCollection<EventDto>> GetAllAsync(CancellationToken ct = default)
     {
+        if (ct.IsCancellationRequested)
+            return Task.FromCanceled<IReadOnlyCollection<EventDto>>(ct);
+
         var allEvents = _events.Values;
         
         var result = new List<EventDto>();
@@ -25,6 +28,9 @@ public class EventService : IEventService
 
     public Task<EventDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
+        if (ct.IsCancellationRequested)
+            return Task.FromCanceled<EventDto?>(ct);
+
         _events.TryGetValue(id, out var ev);
         var dto = ev == null ? null : MapToDto(ev);
         return Task.FromResult(dto);
@@ -32,6 +38,9 @@ public class EventService : IEventService
 
     public Task<EventDto> CreateAsync(CreateEventDto dto, CancellationToken ct = default)
     {
+        if (ct.IsCancellationRequested)
+            return Task.FromCanceled<EventDto>(ct);
+
         if (!dto.StartAt.HasValue || !dto.EndAt.HasValue)
             throw new ArgumentException("StartAt and EndAt are required.");
 
@@ -42,18 +51,22 @@ public class EventService : IEventService
             dto.EndAt.Value
             );
 
+        if (!_events.TryAdd(newEvent.Id, newEvent))
+        {
+            throw new InvalidOperationException($"Event with Id '{newEvent.Id}' already exists.");
+        }
+
         var newDto = MapToDto(newEvent);
         return Task.FromResult(newDto);
-        
     }
 
-    public Task<bool> UpdateAsync(Guid id, UpdateEventDto dto, CancellationToken ct = default)
+    public Task<EventDto?> UpdateAsync(Guid id, UpdateEventDto dto, CancellationToken ct = default)
     {
         if (ct.IsCancellationRequested)
-            return Task.FromCanceled<bool>(ct);
+            return Task.FromCanceled<EventDto?>(ct);
         
         if (!_events.TryGetValue(id, out var existingEvent))
-            return Task.FromResult(false);
+            return Task.FromResult<EventDto?>(null);
 
         if (!dto.StartAt.HasValue || !dto.EndAt.HasValue)
             throw new ArgumentException("StartAt and EndAt are required.");
@@ -67,11 +80,18 @@ public class EventService : IEventService
             );
 
         var updated = _events.TryUpdate(id, updatedEvent, existingEvent);
-        return Task.FromResult(updated);
+        if (!updated)
+            return Task.FromResult<EventDto?>(null);
+        
+        var updatedDto = MapToDto(updatedEvent);
+        return Task.FromResult<EventDto?>(updatedDto);
     }
 
     public Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
     {
+        if (ct.IsCancellationRequested)
+            return Task.FromCanceled<bool>(ct);
+
         var isDeleted = _events.TryRemove(id, out _);
         return Task.FromResult(isDeleted);
     }
