@@ -2,7 +2,7 @@
 
 namespace EventServiceWebApi.Application.DTOs.Events;
 
-public class UpdateEventDto : IValidatableObject
+public abstract record EventInputDto : IValidatableObject
 {
     [Required(ErrorMessage = "Title of event is reqired.")]
     public string Title { get; init; }
@@ -20,3 +20,6 @@ public class UpdateEventDto : IValidatableObject
         }
     }
 }
+
+public record CreateEventDto : EventInputDto;
+public record UpdateEventDto : EventInputDto;
