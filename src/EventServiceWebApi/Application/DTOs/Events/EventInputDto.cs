@@ -2,14 +2,36 @@
 
 namespace EventServiceWebApi.Application.DTOs.Events;
 
+/// <summary>
+/// Data transfer object representing an input event details payload.
+/// </summary>
 public abstract record EventInputDto : IValidatableObject
 {
-    [Required(ErrorMessage = "Title of event is reqired.")]
+    /// <summary>
+    /// Title or headline of the event.
+    /// </summary>
+    [Required(ErrorMessage = "Title of event is required.")]
     public string Title { get; init; }
+    
+    /// <summary>
+    /// Detailed description or agenda of the event.
+    /// </summary>
     public string? Description { get; init; }
-    [Required(ErrorMessage = "Start date is reqired.")]
+
+
+    /// <summary>
+    /// Start date and time of the event in UTC.
+    /// </summary>
+    /// <example>2026-10-02T10:00:00Z</example>
+    [Required(ErrorMessage = "Start date is required.")]
     public DateTime? StartAt { get; init; }
-    [Required(ErrorMessage = "End date is reqired.")]
+
+
+    /// <summary>
+    /// End date and time of the event in UTC. Must be greater than Start date.
+    /// </summary>
+    /// <example>2026-10-02T11:00:00Z</example>
+    [Required(ErrorMessage = "End date is required.")]
     public DateTime? EndAt { get; init; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
