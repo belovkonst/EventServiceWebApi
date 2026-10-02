@@ -32,4 +32,4 @@ Base path: `/api/events`
    dotnet run --project EventServiceWebApi
    ```
    
-4. **Open [https://localhost:<port>/swagger](https://localhost:<port>/swagger) in your browser to explore the API** 
+4. **Open `https://localhost:<port>/swagger` in your browser to explore the API** 
