@@ -19,14 +19,17 @@ Base path: `/api/events`
 1. **Clone the repository:**
    ```bash
    git clone <repository-url>
-   cd EventServiceWebApi```
+   cd EventServiceWebApi
+   ```
    
 2. **Build the solution:**   
    ```bash
-   dotnet run```
+   dotnet run
+   ```
    
 3. **Run the application:**   
    ```bash
-   dotnet run --project EventServiceWebApi```
+   dotnet run --project EventServiceWebApi
+   ```
    
-4. **Open https://localhost:<port>/swagger in your browser to explore the API** 
+4. **Open [https://localhost:<port>/swagger](https://localhost:<port>/swagger) in your browser to explore the API** 
