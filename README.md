@@ -3,13 +3,13 @@ A RESTful Web API built with ASP.NET Core for scheduling and managing events. Th
 
 ## Endpoints
 
-Base path: `/api/events`
+Base path: `/events`
 
-* `GET /api/events` — Retrieve all events
-* `GET /api/events/{id}` — Retrieve an event by ID
-* `POST /api/events` — Create a new event
-* `PUT /api/events/{id}` — Update an existing event by ID
-* `DELETE /api/events/{id}` — Delete an event by ID
+* `GET /events` — Retrieve all events
+* `GET /events/{id}` — Retrieve an event by ID
+* `POST /events` — Create a new event
+* `PUT /events/{id}` — Update an existing event by ID
+* `DELETE /events/{id}` — Delete an event by ID
 
 > Detailed specifications of endpoints, request/response models, and status codes are available via the interactive **Swagger UI** (`/swagger`).
 
