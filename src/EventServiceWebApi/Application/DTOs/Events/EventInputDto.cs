@@ -11,11 +11,13 @@ public abstract record EventInputDto : IValidatableObject
     /// Title or headline of the event.
     /// </summary>
     [Required(ErrorMessage = "Title of event is required.")]
-    public string Title { get; init; }
-    
+    [StringLength(200, MinimumLength = 1, ErrorMessage = "Title must be between 1 and 200 characters.")]
+    public string Title { get; init; } = string.Empty;
+
     /// <summary>
     /// Detailed description or agenda of the event.
     /// </summary>
+    [MaxLength(2000, ErrorMessage = "Description cannot exceed 2000 characters.")]
     public string? Description { get; init; }
 
 

@@ -1,5 +1,5 @@
-# Event Service Web API
-A RESTful Web API built with ASP.NET Core for scheduling and managing events. The service provides endpoints to create, retrieve, update, and delete events with date validation and cancellation support.
+﻿# Event Service Web API
+A RESTful Web API built with ASP.NET Core for scheduling and managing events. The service provides endpoints to create, retrieve, update, and delete events with date validation.
 
 ## Endpoints
 
@@ -24,12 +24,12 @@ Base path: `/api/events`
    
 2. **Build the solution:**   
    ```bash
-   dotnet run
+   dotnet build
    ```
    
 3. **Run the application:**   
    ```bash
-   dotnet run --project EventServiceWebApi
+   dotnet run --project src/EventServiceWebApi
    ```
    
-4. **Open `https://localhost:<port>/swagger` in your browser to explore the API** 
+4. **Open [https://localhost:7174/swagger](https://localhost:7174/swagger) in your browser to explore the API** 

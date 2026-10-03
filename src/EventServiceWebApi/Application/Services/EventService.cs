@@ -2,7 +2,6 @@
 using EventServiceWebApi.Application.Interfaces;
 using EventServiceWebApi.Model;
 using System.Collections.Concurrent;
-using System.Linq.Expressions;
 
 namespace EventServiceWebApi.Application.Services;
 
@@ -12,24 +11,16 @@ public class EventService : IEventService
 
     public Task<IReadOnlyCollection<EventDto>> GetAllAsync(CancellationToken ct = default)
     {
-        if (ct.IsCancellationRequested)
-            return Task.FromCanceled<IReadOnlyCollection<EventDto>>(ct);
+        ct.ThrowIfCancellationRequested();
 
-        var allEvents = _events.Values;
-        
-        var result = new List<EventDto>();
-        foreach (var ev in allEvents)
-        {
-            result.Add(MapToDto(ev));
-        }
-
-        return Task.FromResult<IReadOnlyCollection<EventDto>>(result);
+        var allEvents = _events.Values.Select(MapToDto)
+            .OrderBy(e => e.StartAt).ToList();
+        return Task.FromResult<IReadOnlyCollection<EventDto>>(allEvents);
     }
 
     public Task<EventDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        if (ct.IsCancellationRequested)
-            return Task.FromCanceled<EventDto?>(ct);
+        ct.ThrowIfCancellationRequested();
 
         _events.TryGetValue(id, out var ev);
         var dto = ev == null ? null : MapToDto(ev);
@@ -38,17 +29,13 @@ public class EventService : IEventService
 
     public Task<EventDto> CreateAsync(CreateEventDto dto, CancellationToken ct = default)
     {
-        if (ct.IsCancellationRequested)
-            return Task.FromCanceled<EventDto>(ct);
-
-        if (!dto.StartAt.HasValue || !dto.EndAt.HasValue)
-            throw new ArgumentException("StartAt and EndAt are required.");
+        ct.ThrowIfCancellationRequested();
 
         var newEvent = new Event(
             dto.Title,
             dto.Description,
-            dto.StartAt.Value,
-            dto.EndAt.Value
+            dto.StartAt!.Value,
+            dto.EndAt!.Value
             );
 
         if (!_events.TryAdd(newEvent.Id, newEvent))
@@ -62,35 +49,33 @@ public class EventService : IEventService
 
     public Task<EventDto?> UpdateAsync(Guid id, UpdateEventDto dto, CancellationToken ct = default)
     {
-        if (ct.IsCancellationRequested)
-            return Task.FromCanceled<EventDto?>(ct);
-        
-        if (!_events.TryGetValue(id, out var existingEvent))
-            return Task.FromResult<EventDto?>(null);
+        const int maxRetries = 3;
 
-        if (!dto.StartAt.HasValue || !dto.EndAt.HasValue)
-            throw new ArgumentException("StartAt and EndAt are required.");
+        for (var attempt = 0; attempt < maxRetries; attempt++)
+        {
+            ct.ThrowIfCancellationRequested();
 
-        var updatedEvent = new Event(
-            dto.Title,
-            dto.Description,
-            dto.StartAt.Value,
-            dto.EndAt.Value,
-            id: id
-            );
+            if (!_events.TryGetValue(id, out var existingEvent))
+                return Task.FromResult<EventDto?>(null);
 
-        var updated = _events.TryUpdate(id, updatedEvent, existingEvent);
-        if (!updated)
-            return Task.FromResult<EventDto?>(null);
-        
-        var updatedDto = MapToDto(updatedEvent);
-        return Task.FromResult<EventDto?>(updatedDto);
+            var updatedEvent = new Event(
+                dto.Title,
+                dto.Description,
+                dto.StartAt!.Value,
+                dto.EndAt!.Value,
+                id: id
+                );
+
+            if (_events.TryUpdate(id, updatedEvent, existingEvent))
+                return Task.FromResult<EventDto?>(MapToDto(updatedEvent));
+        }
+
+        throw new InvalidOperationException($"Failed to update event '{id}' due to concurrent modifications.");
     }
 
     public Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        if (ct.IsCancellationRequested)
-            return Task.FromCanceled<bool>(ct);
+        ct.ThrowIfCancellationRequested();
 
         var isDeleted = _events.TryRemove(id, out _);
         return Task.FromResult(isDeleted);

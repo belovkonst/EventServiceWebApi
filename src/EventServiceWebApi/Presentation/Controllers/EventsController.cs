@@ -8,7 +8,7 @@ namespace EventServiceWebApi.Presentation.Controllers;
 /// API endpoints for managing scheduled events.
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("events")]
 public class EventsController : ControllerBase
 {
     private readonly IEventService _eventService;
@@ -45,7 +45,12 @@ public class EventsController : ControllerBase
     {
         var ev = await _eventService.GetByIdAsync(id,ct);
         if (ev == null)
-            return NotFound($"Event with id '{id}' is not found.");
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Resource Not Found",
+                detail: $"Event with id '{id}' is not found."
+                );
+                
 
         return Ok(ev);
     }
@@ -79,11 +84,25 @@ public class EventsController : ControllerBase
     [Route("{id:guid}")]
     public async Task<ActionResult<EventDto>> UpdateById(Guid id, [FromBody] UpdateEventDto dto, CancellationToken ct)
     {
-        var ev = await _eventService.UpdateAsync(id, dto, ct);
-        if (ev == null)
-            return NotFound($"Event with id '{id}' is not found.");
+        try
+        {
+            var ev = await _eventService.UpdateAsync(id, dto, ct);
+            if (ev == null)
+                return Problem(
+                    statusCode: StatusCodes.Status404NotFound,
+                    title: "Resource Not Found",
+                    detail: $"Event with id '{id}' is not found."
+                    );
 
-        return Ok(ev);
+            return Ok(ev);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Conflict",
+                detail: ex.Message);
+        }
     }
 
 
@@ -101,7 +120,11 @@ public class EventsController : ControllerBase
     {
         var isDeleted = await _eventService.DeleteAsync(id, ct);
         if (!isDeleted)
-            return NotFound($"Event with id '{id}' is not found.");
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Resource Not Found",
+                detail: $"Event with id '{id}' is not found."
+                );
 
         return NoContent();
     }
