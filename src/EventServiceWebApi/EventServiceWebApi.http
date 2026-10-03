@@ -1,0 +1,58 @@
+@HostAddress = https://localhost:7174
+@eventsUrl = {{HostAddress}}/events
+
+### 1. Create a new event
+# @name createEvent
+POST {{eventsUrl}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "title": "Architecture Review",
+  "description": "Quarterly system design and performance review meeting",
+  "startAt": "2026-10-10T10:00:00Z",
+  "endAt": "2026-10-10T11:30:00Z"
+}
+
+### 2. Get all events
+GET {{eventsUrl}}
+Accept: application/json
+
+### 3. Get event by ID (using dynamic ID from the previous create response)
+GET {{eventsUrl}}/{{createEvent.response.body.$.id}}
+Accept: application/json
+
+### 4. Update existing event
+PUT {{eventsUrl}}/{{createEvent.response.body.$.id}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "title": "Architecture Review (Extended)",
+  "description": "Extended quarterly system design review",
+  "startAt": "2026-10-10T10:00:00Z",
+  "endAt": "2026-10-10T12:00:00Z"
+}
+
+### 5. Verify 404 Not Found (non-existent ID)
+GET {{eventsUrl}}/00000000-0000-0000-0000-000000000000
+Accept: application/problem+json
+
+### 6. Verify 400 Bad Request (validation failure: EndAt before StartAt)
+POST {{eventsUrl}}
+Content-Type: application/json
+Accept: application/problem+json
+
+{
+  "title": "Invalid Event",
+  "description": "EndAt is before StartAt",
+  "startAt": "2026-10-10T12:00:00Z",
+  "endAt": "2026-10-10T10:00:00Z"
+}
+
+### 7. Delete event
+DELETE {{eventsUrl}}/{{createEvent.response.body.$.id}}
+
+### 8. Verify deletion (expected 404 Not Found)
+GET {{eventsUrl}}/{{createEvent.response.body.$.id}}
+Accept: application/problem+json
