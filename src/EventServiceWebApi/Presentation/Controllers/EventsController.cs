@@ -44,14 +44,6 @@ public class EventsController : ControllerBase
     public async Task<ActionResult<EventDto>> GetById(Guid id, CancellationToken ct)
     {
         var ev = await _eventService.GetByIdAsync(id,ct);
-        if (ev == null)
-            return Problem(
-                statusCode: StatusCodes.Status404NotFound,
-                title: "Resource Not Found",
-                detail: $"Event with id '{id}' is not found."
-                );
-                
-
         return Ok(ev);
     }
 
@@ -84,25 +76,8 @@ public class EventsController : ControllerBase
     [Route("{id:guid}")]
     public async Task<ActionResult<EventDto>> UpdateById(Guid id, [FromBody] UpdateEventDto dto, CancellationToken ct)
     {
-        try
-        {
-            var ev = await _eventService.UpdateAsync(id, dto, ct);
-            if (ev == null)
-                return Problem(
-                    statusCode: StatusCodes.Status404NotFound,
-                    title: "Resource Not Found",
-                    detail: $"Event with id '{id}' is not found."
-                    );
-
-            return Ok(ev);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return Problem(
-                statusCode: StatusCodes.Status409Conflict,
-                title: "Conflict",
-                detail: ex.Message);
-        }
+        var ev = await _eventService.UpdateAsync(id, dto, ct);
+        return Ok(ev);
     }
 
 
@@ -118,14 +93,7 @@ public class EventsController : ControllerBase
     [Route("{id:guid}")]
     public async Task<ActionResult> DeleteById(Guid id, CancellationToken ct)
     {
-        var isDeleted = await _eventService.DeleteAsync(id, ct);
-        if (!isDeleted)
-            return Problem(
-                statusCode: StatusCodes.Status404NotFound,
-                title: "Resource Not Found",
-                detail: $"Event with id '{id}' is not found."
-                );
-
+        await _eventService.DeleteAsync(id, ct);
         return NoContent();
     }
 }

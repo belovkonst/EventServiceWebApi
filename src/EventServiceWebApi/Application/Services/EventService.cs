@@ -8,6 +8,12 @@ namespace EventServiceWebApi.Application.Services;
 public class EventService : IEventService
 {
     private readonly ConcurrentDictionary<Guid,Event> _events = new();
+    private readonly ILogger<EventService> _logger;
+
+    public EventService(ILogger<EventService> logger)
+    {
+        _logger = logger;
+    }
 
     public Task<IReadOnlyCollection<EventDto>> GetAllAsync(CancellationToken ct = default)
     {
@@ -22,9 +28,10 @@ public class EventService : IEventService
     {
         ct.ThrowIfCancellationRequested();
 
-        _events.TryGetValue(id, out var ev);
-        var dto = ev == null ? null : MapToDto(ev);
-        return Task.FromResult(dto);
+        if (!_events.TryGetValue(id, out var ev))
+            throw new KeyNotFoundException($"Event with id {id} was not found.");
+        
+        return Task.FromResult<EventDto?>(MapToDto(ev));
     }
 
     public Task<EventDto> CreateAsync(CreateEventDto dto, CancellationToken ct = default)
@@ -40,11 +47,11 @@ public class EventService : IEventService
 
         if (!_events.TryAdd(newEvent.Id, newEvent))
         {
-            throw new InvalidOperationException($"Event with Id '{newEvent.Id}' already exists.");
+            throw new InvalidOperationException($"Event with id {newEvent.Id} already exists.");
         }
 
-        var newDto = MapToDto(newEvent);
-        return Task.FromResult(newDto);
+        _logger.LogInformation("Event with id {EventId} was created.", newEvent.Id);
+        return Task.FromResult(MapToDto(newEvent));
     }
 
     public Task<EventDto?> UpdateAsync(Guid id, UpdateEventDto dto, CancellationToken ct = default)
@@ -56,7 +63,7 @@ public class EventService : IEventService
             ct.ThrowIfCancellationRequested();
 
             if (!_events.TryGetValue(id, out var existingEvent))
-                return Task.FromResult<EventDto?>(null);
+                throw new KeyNotFoundException($"Event with id {id} was not found.");
 
             var updatedEvent = new Event(
                 dto.Title,
@@ -67,18 +74,29 @@ public class EventService : IEventService
                 );
 
             if (_events.TryUpdate(id, updatedEvent, existingEvent))
+            {
+                _logger.LogInformation("Event with id {EventId} was updated.", id);
                 return Task.FromResult<EventDto?>(MapToDto(updatedEvent));
+            }
+            else
+            {
+                _logger.LogWarning("Concurrency conflict updating event with id {EventId}, attempt {Attempt} of {MaxRetries}",
+                    id, attempt + 1, maxRetries);
+            }
         }
 
-        throw new InvalidOperationException($"Failed to update event '{id}' due to concurrent modifications.");
+        throw new InvalidOperationException($"Failed to update event {id} due to concurrent modifications.");
     }
 
-    public Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
+    public Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var isDeleted = _events.TryRemove(id, out _);
-        return Task.FromResult(isDeleted);
+        if(!_events.TryRemove(id, out _))
+            throw new KeyNotFoundException($"Event with id {id} was not found.");
+        
+        _logger.LogInformation("Event with id {EventId} was deleted.", id);
+        return Task.CompletedTask;
     }
 
     private static EventDto MapToDto(Event ev)
