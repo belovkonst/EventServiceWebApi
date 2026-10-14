@@ -5,11 +5,33 @@ A RESTful Web API built with ASP.NET Core for scheduling and managing events. Th
 
 Base path: `/events`
 
-* `GET /events` — Retrieve all events
+* `GET /events` — Retrieve events (supports optional filtering)
 * `GET /events/{id}` — Retrieve an event by ID
 * `POST /events` — Create a new event
 * `PUT /events/{id}` — Update an existing event by ID
 * `DELETE /events/{id}` — Delete an event by ID
+
+### Event Filtering (`GET /events`)
+
+The `GET /events` endpoint supports optional query parameters for filtering results. When multiple parameters are provided, they are combined using a logical **AND**.
+
+| Parameter | Type | Required | Description | Example |
+| :--- | :--- | :--- | :--- | :--- |
+| `title` | `string` | No | Case-insensitive substring search in event title. | `?title=conference` |
+| `from` | `DateTime` (ISO 8601) | No | Filters events starting on or after the specified date/time (UTC). | `?from=2026-10-01T00:00:00Z` |
+| `to` | `DateTime` (ISO 8601) | No | Filters events ending on or before the specified date/time (UTC). | `?to=2026-10-31T23:59:59Z` |
+
+#### Validation Rules:
+* The `title` filter must not exceed 200 characters.
+* If both `from` and `to` are provided, `from` must be earlier than or equal to `to`. Otherwise, the API returns `400 Bad Request`.
+
+#### Example Requests:
+* Search by title:  
+  `GET /events?title=meetup`
+* Events within a specific date range:  
+  `GET /events?from=2026-10-01T00:00:00Z&to=2026-10-15T23:59:59Z`
+* Combined filtering:  
+  `GET /events?title=dev&from=2026-10-10T00:00:00Z&to=2026-10-25T23:59:59Z`
 
 > Detailed specifications of endpoints, request/response models, and status codes are available via the interactive **Swagger UI** (`/swagger`).
 

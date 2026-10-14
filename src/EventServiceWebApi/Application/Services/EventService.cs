@@ -15,13 +15,29 @@ public class EventService : IEventService
         _logger = logger;
     }
 
-    public Task<IReadOnlyCollection<EventDto>> GetAllAsync(CancellationToken ct = default)
+    public Task<IReadOnlyCollection<EventDto>> GetAllAsync(EventFilterDto? filter = null, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var allEvents = _events.Values.Select(MapToDto)
-            .OrderBy(e => e.StartAt).ToList();
-        return Task.FromResult<IReadOnlyCollection<EventDto>>(allEvents);
+        IEnumerable<Event> allEvents = _events.Values;
+        
+        if (filter != null)
+        {
+            if (!string.IsNullOrWhiteSpace(filter.Title))
+                allEvents = allEvents.Where(e => e.Title.Contains(filter.Title, StringComparison.OrdinalIgnoreCase));
+
+            if (filter.From != null)
+                allEvents = allEvents.Where(e => e.StartAt >= filter.From.Value);
+
+            if (filter.To != null)
+                allEvents = allEvents.Where(e => e.EndAt <= filter.To.Value);
+        }
+
+        var eventsDtos = allEvents
+            .OrderBy(e => e.StartAt)
+            .Select(MapToDto)
+            .ToList();
+        return Task.FromResult<IReadOnlyCollection<EventDto>>(eventsDtos);
     }
 
     public Task<EventDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
