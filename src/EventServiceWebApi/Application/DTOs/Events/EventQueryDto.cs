@@ -1,12 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using EventServiceWebApi.Application.DTOs.Common;
+using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 
 namespace EventServiceWebApi.Application.DTOs.Events;
 
 /// <summary>
-/// Events filtration parameters.
+/// Events query parameters.
 /// </summary>
-public record EventFilterDto : IValidatableObject
+public record EventQueryDto : PaginationDto, IValidatableObject
 {
     /// <summary>
     /// Substring to filter events by title.

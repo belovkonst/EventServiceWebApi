@@ -1,4 +1,5 @@
-﻿using EventServiceWebApi.Application.DTOs.Events;
+﻿using EventServiceWebApi.Application.DTOs.Common;
+using EventServiceWebApi.Application.DTOs.Events;
 using EventServiceWebApi.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,14 +22,14 @@ public class EventsController : ControllerBase
     /// <summary>
     /// Retrieves a collection of all registered events.
     /// </summary>
-    /// <param name="filter">Events filtration parameters.</param>
+    /// <param name="query">Events filtration parameters.</param>
     /// <param name="ct">Cancellation token to abort the request.</param>
-    /// <returns>A collection of event details.</returns>
+    /// <returns>A paginated list of event details.</returns>
     /// <response code="200">The collection of events was successfully retrieved.</response>
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyCollection<EventDto>>> GetAll([FromQuery] EventFilterDto filter, CancellationToken ct)
+    public async Task<ActionResult<PaginatedResultDto<EventDto>>> GetAll([FromQuery] EventQueryDto query, CancellationToken ct)
     {
-        var events = await _eventService.GetAllAsync(filter, ct);
+        var events = await _eventService.GetAllAsync(query, ct);
         return Ok(events);
     }
 

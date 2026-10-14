@@ -1,4 +1,5 @@
-﻿using EventServiceWebApi.Application.DTOs.Events;
+﻿using EventServiceWebApi.Application.DTOs.Common;
+using EventServiceWebApi.Application.DTOs.Events;
 using EventServiceWebApi.Application.Interfaces;
 using EventServiceWebApi.Model;
 using System.Collections.Concurrent;
@@ -15,29 +16,32 @@ public class EventService : IEventService
         _logger = logger;
     }
 
-    public Task<IReadOnlyCollection<EventDto>> GetAllAsync(EventFilterDto? filter = null, CancellationToken ct = default)
+    public Task<PaginatedResultDto<EventDto>> GetAllAsync(EventQueryDto? query = null, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
+        query ??= new EventQueryDto();
         IEnumerable<Event> allEvents = _events.Values;
         
-        if (filter != null)
-        {
-            if (!string.IsNullOrWhiteSpace(filter.Title))
-                allEvents = allEvents.Where(e => e.Title.Contains(filter.Title, StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrWhiteSpace(query.Title))
+            allEvents = allEvents.Where(e => e.Title.Contains(query.Title, StringComparison.OrdinalIgnoreCase));
 
-            if (filter.From != null)
-                allEvents = allEvents.Where(e => e.StartAt >= filter.From.Value);
+        if (query.From != null)
+            allEvents = allEvents.Where(e => e.StartAt >= query.From.Value);
 
-            if (filter.To != null)
-                allEvents = allEvents.Where(e => e.EndAt <= filter.To.Value);
-        }
+        if (query.To != null)
+            allEvents = allEvents.Where(e => e.EndAt <= query.To.Value);
 
+        var totalCount = allEvents.Count();
         var eventsDtos = allEvents
             .OrderBy(e => e.StartAt)
+            .Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize)
             .Select(MapToDto)
             .ToList();
-        return Task.FromResult<IReadOnlyCollection<EventDto>>(eventsDtos);
+        
+        var paginatedResult = new PaginatedResultDto<EventDto>(query.Page, query.PageSize, totalCount, eventsDtos);
+        return Task.FromResult<PaginatedResultDto<EventDto>>(paginatedResult);
     }
 
     public Task<EventDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
