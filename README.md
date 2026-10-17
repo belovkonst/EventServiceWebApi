@@ -55,7 +55,12 @@ The `GET /events` endpoint supports optional query parameters for filtering and 
    
 3. **Run the application:**   
    ```bash
+   dotnet test
+   ```
+
+4. **Run the application:**   
+   ```bash
    dotnet run --project src/EventServiceWebApi
    ```
    
-4. **Open [https://localhost:7174/swagger](https://localhost:7174/swagger) in your browser to explore the API** 
+5. **Open [https://localhost:7174/swagger](https://localhost:7174/swagger) in your browser to explore the API** 

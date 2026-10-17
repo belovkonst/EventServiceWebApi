@@ -5,4 +5,7 @@
   <Folder Name="/src/">
     <Project Path="src/EventServiceWebApi/EventServiceWebApi.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/EventServiceWebApi.Tests/EventServiceWebApi.Tests.csproj" />
+  </Folder>
 </Solution>
