@@ -39,6 +39,20 @@ The `GET /events` endpoint supports optional query parameters for filtering and 
 
 > Detailed specifications of endpoints, request/response models, and status codes are available via the interactive **Swagger UI** (`/swagger`).
 
+## Error Handling
+All unhandled exceptions and validation errors return a standardized JSON response in the **Problem Details (RFC 7807)** format containing the HTTP status code and error message:
+* `400 Bad Request` — Validation or argument errors
+* `404 Not Found` — Event with the specified ID was not found
+* `409 Conflict` — Concurrency conflict or duplicate resource
+* `500 Internal Server Error` — Unexpected server error
+
+#### Example Error Response (`404 Not Found`):
+```json
+{
+  "status": 404,
+  "detail": "Event with id 3fa85f64-5717-4562-b3fc-2c963f66afa6 was not found."
+}
+```
 
 ## Getting Started
 
@@ -53,7 +67,7 @@ The `GET /events` endpoint supports optional query parameters for filtering and 
    dotnet build
    ```
    
-3. **Run the application:**   
+3. **Run the tests:**   
    ```bash
    dotnet test
    ```
