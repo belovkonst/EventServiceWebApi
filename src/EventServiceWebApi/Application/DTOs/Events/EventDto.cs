@@ -18,7 +18,7 @@ public record EventDto
     /// </summary>
     [Required]
     public required string Title { get; init; }
-    
+
     /// <summary>
     /// Detailed description or agenda of the event.
     /// </summary>

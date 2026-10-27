@@ -18,6 +18,19 @@ Accept: application/json
 GET {{eventsUrl}}
 Accept: application/json
 
+### 2.1. Get events filtered by title
+GET {{eventsUrl}}?title=Architecture
+Accept: application/json
+
+### 2.2. Get events filtered by date range
+GET {{eventsUrl}}?from=2026-10-01T00:00:00Z&to=2026-10-31T23:59:59Z
+Accept: application/json
+
+### 2.3. Verify 400 Bad Request on invalid date filter (from > to)
+GET {{eventsUrl}}?from=2026-10-31T00:00:00Z&to=2026-10-01T00:00:00Z
+Accept: application/problem+json
+
+
 ### 3. Get event by ID (using dynamic ID from the previous create response)
 GET {{eventsUrl}}/{{createEvent.response.body.$.id}}
 Accept: application/json

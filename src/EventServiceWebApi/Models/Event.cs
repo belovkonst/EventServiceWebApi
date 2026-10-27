@@ -13,8 +13,8 @@ public class Event
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
 
         if (startAt >= endAt)
-            throw new ArgumentOutOfRangeException(nameof(endAt),"End date must be greater than Start date.");
-       
+            throw new ArgumentOutOfRangeException(nameof(endAt), "End date must be greater than Start date.");
+
         Id = id ?? Guid.NewGuid();
         Title = title;
         Description = description;
