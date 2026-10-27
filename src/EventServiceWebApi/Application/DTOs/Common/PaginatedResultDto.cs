@@ -28,7 +28,7 @@ public record PaginatedResultDto<T>
     /// </summary>
     public IReadOnlyCollection<T> Items { get; init; } = [];
 
-    public PaginatedResultDto(int page, int  pageSize, int totalItemsCount, IReadOnlyCollection<T> items)
+    public PaginatedResultDto(int page, int pageSize, int totalItemsCount, IReadOnlyCollection<T> items)
     {
         Page = page;
         PageSize = pageSize;

@@ -33,7 +33,7 @@ public class GlobalExceptionHandlingMiddleware
             return;
         }
 
-        var statusCode = MapStatusCode(ex);
+        var (statusCode, title, type) = MapStatusCode(ex);
 
         if (statusCode == StatusCodes.Status500InternalServerError)
         {
@@ -47,23 +47,38 @@ public class GlobalExceptionHandlingMiddleware
         }
 
         httpContext.Response.StatusCode = statusCode;
-        httpContext.Response.ContentType = "application/json";
+        httpContext.Response.ContentType = "application/problem+json";
 
         var error = new ProblemDetails
         {
             Status = statusCode,
-            Detail = statusCode == StatusCodes.Status500InternalServerError ? "Internal server error" : ex.Message
+            Title = title,
+            Type = type,
+            Detail = statusCode == StatusCodes.Status500InternalServerError ? "Internal server error" : ex.Message,
+            Instance = httpContext.Request.Path
         };
 
         await httpContext.Response.WriteAsJsonAsync(error);
     }
 
-    private static int MapStatusCode(Exception ex)
+    private static (int Status, string Title, string Type) MapStatusCode(Exception ex)
         => ex switch
         {
-            ValidationException or ArgumentException => StatusCodes.Status400BadRequest,
-            KeyNotFoundException => StatusCodes.Status404NotFound,
-            InvalidOperationException => StatusCodes.Status409Conflict,
-            _ => StatusCodes.Status500InternalServerError
+            ValidationException or ArgumentException => (
+                StatusCodes.Status400BadRequest,
+                "Bad Request",
+                "https://tools.ietf.org/html/rfc9110#section-15.5.1"),
+            KeyNotFoundException => (
+                StatusCodes.Status404NotFound,
+                "Not Found",
+                "https://tools.ietf.org/html/rfc9110#section-15.5.5"),
+            InvalidOperationException => (
+                StatusCodes.Status409Conflict,
+                "Conflict",
+                "https://tools.ietf.org/html/rfc9110#section-15.5.10"),
+            _ => (
+                StatusCodes.Status500InternalServerError,
+                "Internal Server Error",
+                "https://tools.ietf.org/html/rfc9110#section-15.6.1")
         };
 }

@@ -8,7 +8,7 @@ namespace EventServiceWebApi.Application.Services;
 
 public class EventService : IEventService
 {
-    private readonly ConcurrentDictionary<Guid,Event> _events = new();
+    private readonly ConcurrentDictionary<Guid, Event> _events = new();
     private readonly ILogger<EventService> _logger;
 
     public EventService(ILogger<EventService> logger)
@@ -22,7 +22,7 @@ public class EventService : IEventService
 
         query ??= new EventQueryDto();
         IEnumerable<Event> allEvents = _events.Values;
-        
+
         if (!string.IsNullOrWhiteSpace(query.Title))
             allEvents = allEvents.Where(e => e.Title.Contains(query.Title, StringComparison.OrdinalIgnoreCase));
 
@@ -39,7 +39,7 @@ public class EventService : IEventService
             .Take(query.PageSize)
             .Select(MapToDto)
             .ToList();
-        
+
         var paginatedResult = new PaginatedResultDto<EventDto>(query.Page, query.PageSize, totalCount, eventsDtos);
         return Task.FromResult<PaginatedResultDto<EventDto>>(paginatedResult);
     }
@@ -50,7 +50,7 @@ public class EventService : IEventService
 
         if (!_events.TryGetValue(id, out var ev))
             throw new KeyNotFoundException($"Event with id {id} was not found.");
-        
+
         return Task.FromResult<EventDto?>(MapToDto(ev));
     }
 
@@ -112,9 +112,9 @@ public class EventService : IEventService
     {
         ct.ThrowIfCancellationRequested();
 
-        if(!_events.TryRemove(id, out _))
+        if (!_events.TryRemove(id, out _))
             throw new KeyNotFoundException($"Event with id {id} was not found.");
-        
+
         _logger.LogInformation("Event with id {EventId} was deleted.", id);
         return Task.CompletedTask;
     }

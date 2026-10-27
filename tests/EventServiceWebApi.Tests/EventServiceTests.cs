@@ -40,7 +40,7 @@ public class EventServiceTests
         await _eventService.CreateAsync(GetValidCreateEventDto());
 
         var query = new EventQueryDto { Title = "matched" };
-        
+
         // Act
         var result = await _eventService.GetAllAsync(query);
 
@@ -105,8 +105,8 @@ public class EventServiceTests
         await _eventService.CreateAsync(GetValidCreateEventDto(title: "Matched 2", startAt: baseDate.AddDays(1)));
         await _eventService.CreateAsync(GetValidCreateEventDto(startAt: baseDate));
 
-        var query = new EventQueryDto 
-        { 
+        var query = new EventQueryDto
+        {
             Title = "matched",
             From = baseDate,
             To = baseDate.AddHours(6)
@@ -260,7 +260,7 @@ public class EventServiceTests
         updated.Should().BeEquivalentTo(updatedDto, opt => opt.ExcludingMissingMembers());
         found.Should().BeEquivalentTo(updated);
     }
-    
+
     [Fact]
     public async Task UpdateAsync_EndDateLessStartDate_ShouldThrowArgumentOutOfRangeException()
     {
@@ -350,7 +350,7 @@ public class EventServiceTests
         await act.Should().ThrowAsync<OperationCanceledException>();
     }
     #endregion
-    
+
     #region Test data helpers
 
     private static CreateEventDto GetValidCreateEventDto(

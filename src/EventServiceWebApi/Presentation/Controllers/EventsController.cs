@@ -13,7 +13,7 @@ namespace EventServiceWebApi.Presentation.Controllers;
 public class EventsController : ControllerBase
 {
     private readonly IEventService _eventService;
-    
+
     public EventsController(IEventService eventService)
     {
         _eventService = eventService;
@@ -45,7 +45,7 @@ public class EventsController : ControllerBase
     [Route("{id:guid}")]
     public async Task<ActionResult<EventDto>> GetById(Guid id, CancellationToken ct)
     {
-        var ev = await _eventService.GetByIdAsync(id,ct);
+        var ev = await _eventService.GetByIdAsync(id, ct);
         return Ok(ev);
     }
 
