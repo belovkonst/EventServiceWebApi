@@ -1,5 +1,4 @@
-﻿using EventServiceWebApi.Model;
-using EventServiceWebApi.Application.DTOs.Events;
+﻿using EventServiceWebApi.Application.DTOs.Events;
 using EventServiceWebApi.Application.DTOs.Common;
 
 namespace EventServiceWebApi.Application.Interfaces;
