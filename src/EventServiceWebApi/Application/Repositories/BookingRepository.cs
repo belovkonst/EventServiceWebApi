@@ -16,4 +16,19 @@ public class BookingRepository : IBookingRepository
     {
         return _bookings.TryAdd(booking.Id, booking);
     }
+
+    public IReadOnlyCollection<Booking> GetPending()
+    {
+        return _bookings.Values
+            .Where(b => b.Status == BookingStatus.Pending)
+            .ToList();
+    }
+
+    public void Update(Booking booking)
+    {
+        if (!_bookings.ContainsKey(booking.Id))
+            throw new KeyNotFoundException($"Booking with id {booking.Id} was not found.");
+
+        _bookings[booking.Id] = booking;
+    }
 }
