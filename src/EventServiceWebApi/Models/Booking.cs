@@ -1,4 +1,6 @@
-﻿namespace EventServiceWebApi.Models;
+﻿using System.Text.Json.Serialization;
+
+namespace EventServiceWebApi.Models;
 
 public class Booking
 {
@@ -36,6 +38,7 @@ public class Booking
     }
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum BookingStatus
 {
     Pending,
