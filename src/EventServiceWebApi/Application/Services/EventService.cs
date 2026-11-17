@@ -1,7 +1,7 @@
 ﻿using EventServiceWebApi.Application.DTOs.Common;
 using EventServiceWebApi.Application.DTOs.Events;
 using EventServiceWebApi.Application.Interfaces;
-using EventServiceWebApi.Model;
+using EventServiceWebApi.Models;
 using System.Collections.Concurrent;
 
 namespace EventServiceWebApi.Application.Services;

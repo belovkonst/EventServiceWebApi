@@ -1,4 +1,4 @@
-﻿namespace EventServiceWebApi.Model;
+﻿namespace EventServiceWebApi.Models;
 
 public class Event
 {
