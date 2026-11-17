@@ -18,23 +18,31 @@ public class Booking
         CreatedAt = DateTime.UtcNow;
     }
 
-    public void Confirm()
+    private Booking(Guid id, Guid eventId, BookingStatus status, DateTime createdAt, DateTime? processedAt)
     {
-        SetFinalStatus(BookingStatus.Confirmed);
+        Id = id;
+        EventId = eventId;
+        Status = status;
+        CreatedAt = createdAt;
+        ProcessedAt = processedAt;
     }
 
-    public void Reject()
+    public Booking Confirm()
     {
-        SetFinalStatus(BookingStatus.Rejected);
+        return CreateWithFinalStatus(BookingStatus.Confirmed);
     }
 
-    private void SetFinalStatus(BookingStatus newStatus)
+    public Booking Reject()
+    {
+        return CreateWithFinalStatus(BookingStatus.Rejected);
+    }
+
+    private Booking CreateWithFinalStatus(BookingStatus newStatus)
     {
         if (Status != BookingStatus.Pending)
             throw new InvalidOperationException($"Cannot change status from {Status} to {newStatus}.");
 
-        Status = newStatus;
-        ProcessedAt = DateTime.UtcNow;
+        return new Booking(Id, EventId, newStatus, CreatedAt, DateTime.UtcNow);
     }
 }
 

@@ -1,13 +1,9 @@
 ﻿using EventServiceWebApi.Application.DTOs.Events;
-using EventServiceWebApi.Application.Interfaces;
 using EventServiceWebApi.Application.Repositories;
 using EventServiceWebApi.Application.Services;
 using EventServiceWebApi.Models;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace EventServiceWebApi.Tests;
 
@@ -104,7 +100,8 @@ public class BookingServiceTests
         var created = await _bookingService.CreateBookingAsync(ev.Id);
         var entity = _bookingRepository.GetById(created.Id)!;
         // Act
-        entity.Confirm();
+        var confirmedBooking = entity.Confirm();
+        _bookingRepository.Update(confirmedBooking);
         var found = await _bookingService.GetBookingByIdAsync(created.Id);
         // Assert
         found.Status.Should().Be(BookingStatus.Confirmed);
@@ -119,7 +116,8 @@ public class BookingServiceTests
         var created = await _bookingService.CreateBookingAsync(ev.Id);
         var entity = _bookingRepository.GetById(created.Id)!;
         // Act
-        entity.Reject();
+        var rejectedBooking = entity.Reject();
+        _bookingRepository.Update(rejectedBooking);
         var found = await _bookingService.GetBookingByIdAsync(created.Id);
         // Assert
         found.Status.Should().Be(BookingStatus.Rejected);

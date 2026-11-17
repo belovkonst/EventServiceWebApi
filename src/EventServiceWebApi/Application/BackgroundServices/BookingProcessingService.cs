@@ -17,30 +17,41 @@ public class BookingProcessingService : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            var pendingBookings = _bookingRepository.GetPending();
-            _logger.LogInformation("Found pending bookings: {PendingBookingsCount}.", pendingBookings.Count);
-
-            foreach (var booking in pendingBookings)
+            try
             {
-                try
-                {
-                    await Task.Delay(2000, stoppingToken);
+                var pendingBookings = _bookingRepository.GetPending();
+                _logger.LogDebug("Found pending bookings: {PendingBookingsCount}.", pendingBookings.Count);
 
-                    booking.Confirm();
-                    _bookingRepository.Update(booking);
-                    _logger.LogInformation("Booking with id {BookingId} was confirmed.", booking.Id);
-                }
-                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                foreach (var booking in pendingBookings)
                 {
-                    return;
+                    try
+                    {
+                        await Task.Delay(2000, stoppingToken);
+
+                        var confirmedBooking = booking.Confirm();
+                        _bookingRepository.Update(confirmedBooking);
+                        _logger.LogInformation("Booking with id {BookingId} was confirmed.", booking.Id);
+                    }
+                    catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                    {
+                        return;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error occurred while processing booking {BookingId}.", booking.Id);
+                    }
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error occurred while processing booking {BookingId}.", booking.Id);
-                }
+                await Task.Delay(5000, stoppingToken);
             }
-
-            await Task.Delay(5000, stoppingToken);
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error occurred during booking polling iteration.");
+                await Task.Delay(5000, stoppingToken);
+            }
         }
     }
 }
