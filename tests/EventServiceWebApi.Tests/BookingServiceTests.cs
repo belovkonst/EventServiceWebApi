@@ -138,7 +138,7 @@ public class BookingServiceTests
     #endregion
 
     #region Helpers
-    private Task<EventDto> CreateTestEventAsync()
+    private Task<EventDto> CreateTestEventAsync(int totalSeats = 10)
     {
         var start = DateTime.UtcNow.AddDays(1);
         var dto = new CreateEventDto
@@ -146,7 +146,8 @@ public class BookingServiceTests
             Title = "Test Event",
             Description = "Test Description",
             StartAt = start,
-            EndAt = start.AddHours(2)
+            EndAt = start.AddHours(2),
+            TotalSeats = totalSeats
         };
         return _eventService.CreateAsync(dto);
     }

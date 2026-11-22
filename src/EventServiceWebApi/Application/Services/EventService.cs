@@ -62,7 +62,8 @@ public class EventService : IEventService
             dto.Title,
             dto.Description,
             dto.StartAt!.Value,
-            dto.EndAt!.Value
+            dto.EndAt!.Value,
+            dto.TotalSeats!.Value
             );
 
         if (!_events.TryAdd(newEvent.Id, newEvent))
@@ -90,6 +91,7 @@ public class EventService : IEventService
                 dto.Description,
                 dto.StartAt!.Value,
                 dto.EndAt!.Value,
+                existingEvent.TotalSeats,
                 id: id
                 );
 
@@ -127,7 +129,9 @@ public class EventService : IEventService
             Title = ev.Title,
             Description = ev.Description,
             StartAt = ev.StartAt,
-            EndAt = ev.EndAt
+            EndAt = ev.EndAt,
+            TotalSeats = ev.TotalSeats,
+            AvailableSeats = ev.AvailableSeats
         };
     }
 }

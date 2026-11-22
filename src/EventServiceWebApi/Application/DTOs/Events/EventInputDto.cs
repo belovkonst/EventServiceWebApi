@@ -45,5 +45,14 @@ public abstract record EventInputDto : IValidatableObject
     }
 }
 
-public record CreateEventDto : EventInputDto;
+public record CreateEventDto : EventInputDto
+{
+    /// <summary>
+    /// Total number of seats for the event. Must be greater than 0.
+    /// </summary>
+    [Required(ErrorMessage = "Total seats is required.")]
+    [Range(1, int.MaxValue, ErrorMessage = "Total seats must be greater than 0.")]
+    public int? TotalSeats { get; init; }
+}
+
 public record UpdateEventDto : EventInputDto;

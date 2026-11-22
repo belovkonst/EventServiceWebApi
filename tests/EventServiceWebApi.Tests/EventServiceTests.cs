@@ -357,9 +357,13 @@ public class EventServiceTests
         string title = "Title",
         string? description = "Description",
         DateTime? startAt = null,
-        DateTime? endAt = null
+        DateTime? endAt = null,
+        int? totalSeats = 10
         )
-        => GenerateValidEventDto<CreateEventDto>(title, description, startAt, endAt);
+        => GenerateValidEventDto<CreateEventDto>(title, description, startAt, endAt) with
+        {
+            TotalSeats = totalSeats
+        };
 
     private static UpdateEventDto GetValidUpdateEventDto(
         string title = "Updated Title",
