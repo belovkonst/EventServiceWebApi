@@ -21,7 +21,7 @@ public class EventService : IEventService
         ct.ThrowIfCancellationRequested();
 
         query ??= new EventQueryDto();
-        IEnumerable<Event> allEvents = _events.Values;
+        IEnumerable<Event> allEvents = _events.Values.Select(e => e.GetSnapshot());
 
         if (!string.IsNullOrWhiteSpace(query.Title))
             allEvents = allEvents.Where(e => e.Title.Contains(query.Title, StringComparison.OrdinalIgnoreCase));
@@ -32,8 +32,9 @@ public class EventService : IEventService
         if (query.To != null)
             allEvents = allEvents.Where(e => e.EndAt <= query.To.Value);
 
-        var totalCount = allEvents.Count();
-        var eventsDtos = allEvents
+        var filteredEvents = allEvents.ToList();
+        var totalCount = filteredEvents.Count();
+        var eventsDtos = filteredEvents
             .OrderBy(e => e.StartAt)
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
@@ -77,37 +78,20 @@ public class EventService : IEventService
 
     public Task<EventDto?> UpdateAsync(Guid id, UpdateEventDto dto, CancellationToken ct = default)
     {
-        const int maxRetries = 3;
+        ct.ThrowIfCancellationRequested();
 
-        for (var attempt = 0; attempt < maxRetries; attempt++)
-        {
-            ct.ThrowIfCancellationRequested();
+        if (!_events.TryGetValue(id, out var existingEvent))
+            throw new KeyNotFoundException($"Event with id {id} was not found.");
 
-            if (!_events.TryGetValue(id, out var existingEvent))
-                throw new KeyNotFoundException($"Event with id {id} was not found.");
-
-            var updatedEvent = new Event(
-                dto.Title,
-                dto.Description,
-                dto.StartAt!.Value,
-                dto.EndAt!.Value,
-                existingEvent.TotalSeats,
-                id: id
-                );
-
-            if (_events.TryUpdate(id, updatedEvent, existingEvent))
-            {
-                _logger.LogInformation("Event with id {EventId} was updated.", id);
-                return Task.FromResult<EventDto?>(MapToDto(updatedEvent));
-            }
-            else
-            {
-                _logger.LogWarning("Concurrency conflict updating event with id {EventId}, attempt {Attempt} of {MaxRetries}",
-                    id, attempt + 1, maxRetries);
-            }
-        }
-
-        throw new InvalidOperationException($"Failed to update event {id} due to concurrent modifications.");
+        existingEvent.Update(
+            dto.Title,
+            dto.Description,
+            dto.StartAt!.Value,
+            dto.EndAt!.Value
+            );
+            
+        _logger.LogInformation("Event with id {EventId} was updated.", id);
+        return Task.FromResult<EventDto?>(MapToDto(existingEvent));
     }
 
     public Task DeleteAsync(Guid id, CancellationToken ct = default)
@@ -123,15 +107,16 @@ public class EventService : IEventService
 
     private static EventDto MapToDto(Event ev)
     {
+        var snapshot = ev.GetSnapshot();
         return new EventDto()
         {
-            Id = ev.Id,
-            Title = ev.Title,
-            Description = ev.Description,
-            StartAt = ev.StartAt,
-            EndAt = ev.EndAt,
-            TotalSeats = ev.TotalSeats,
-            AvailableSeats = ev.AvailableSeats
+            Id = snapshot.Id,
+            Title = snapshot.Title,
+            Description = snapshot.Description,
+            StartAt = snapshot.StartAt,
+            EndAt = snapshot.EndAt,
+            TotalSeats = snapshot.TotalSeats,
+            AvailableSeats = snapshot.AvailableSeats
         };
     }
 }
