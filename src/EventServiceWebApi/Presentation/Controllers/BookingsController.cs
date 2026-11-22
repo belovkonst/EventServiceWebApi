@@ -26,8 +26,12 @@ public class BookingsController : ControllerBase
     /// <returns>The newly created booking details with Pending status.</returns>
     /// <response code="202">Booking accepted for processing. Location header contains the URI to check booking status.</response>
     /// <response code="404">Event with the specified identifier was not found.</response>
+    /// <response code="409">No available seats for this event.</response>
     [HttpPost]
     [Route("/events/{id:guid}/book")]
+    [ProducesResponseType(typeof(BookingDto), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<ActionResult<BookingDto>> Create(Guid id, CancellationToken ct)
     {
         var booking = await _bookingService.CreateBookingAsync(id, ct);

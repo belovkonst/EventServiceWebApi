@@ -1,24 +1,29 @@
-﻿using EventServiceWebApi.Application.DTOs.Events;
+﻿using EventServiceWebApi.Application.DTOs.Bookings;
+using EventServiceWebApi.Application.DTOs.Events;
+using EventServiceWebApi.Application.Exceptions;
 using EventServiceWebApi.Application.Repositories;
 using EventServiceWebApi.Application.Services;
 using EventServiceWebApi.Models;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Collections.Concurrent;
 
 namespace EventServiceWebApi.Tests;
 
 public class BookingServiceTests
 {
     private readonly EventService _eventService;
+    private readonly EventRepository _eventRepository;
     private readonly BookingRepository _bookingRepository;
     private readonly BookingService _bookingService;
 
 
     public BookingServiceTests()
     {
-        _eventService = new EventService(NullLogger<EventService>.Instance);
+        _eventRepository = new EventRepository();
+        _eventService = new EventService(_eventRepository, NullLogger<EventService>.Instance);
         _bookingRepository = new BookingRepository();
-        _bookingService = new BookingService(_bookingRepository, _eventService, NullLogger<BookingService>.Instance);
+        _bookingService = new BookingService(_bookingRepository, _eventRepository, NullLogger<BookingService>.Instance);
     }
 
     #region CreateBookingAsync Tests
@@ -75,6 +80,166 @@ public class BookingServiceTests
         // Assert
         await act.Should().ThrowAsync<KeyNotFoundException>()
             .WithMessage($"Event with id {ev.Id} was not found.");
+    }
+    #endregion
+
+    #region CheckSeats Tests
+    [Fact]
+    public async Task CreateBookingAsync_ValidEvent_DecreasesAvailableSeatsAfterEachBooking()
+    {
+        // Arrange
+        var ev = await CreateTestEventAsync(totalSeats: 5);
+
+        // Act
+        await _bookingService.CreateBookingAsync(ev.Id);
+        var seatsAfterFirst = _eventRepository.GetById(ev.Id)!.AvailableSeats;
+
+        await _bookingService.CreateBookingAsync(ev.Id);
+        var seatsAfterSecond = _eventRepository.GetById(ev.Id)!.AvailableSeats;
+
+        // Assert
+        seatsAfterFirst.Should().Be(4);
+        seatsAfterSecond.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task CreateBookingAsync_UpToTotalSeatsLimit_AllSucceedWithUniqueIds()
+    {
+        // Arrange
+        const int totalSeats = 3;
+        var ev = await CreateTestEventAsync(totalSeats: totalSeats);
+
+        // Act
+        var booking1 = await _bookingService.CreateBookingAsync(ev.Id);
+        var booking2 = await _bookingService.CreateBookingAsync(ev.Id);
+        var booking3 = await _bookingService.CreateBookingAsync(ev.Id);
+
+        // Assert
+        new[] { booking1.Id, booking2.Id, booking3.Id }
+            .Should().OnlyHaveUniqueItems();
+        _eventRepository.GetById(ev.Id)!.AvailableSeats.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task CreateBookingAsync_WhenNoSeatsAvailable_ShouldThrowNoAvailableSeatsException()
+    {
+        // Arrange
+        var ev = await CreateTestEventAsync(totalSeats: 2);
+        await _bookingService.CreateBookingAsync(ev.Id);
+        await _bookingService.CreateBookingAsync(ev.Id);
+
+        // Act
+        var act = () => _bookingService.CreateBookingAsync(ev.Id);
+
+        // Assert
+        await act.Should().ThrowAsync<NoAvailableSeatsException>()
+            .WithMessage("No available seats for this event");
+        _eventRepository.GetById(ev.Id)!.AvailableSeats.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task RejectBooking_AndReleaseSeats_RestoresAvailableSeats()
+    {
+        // Arrange
+        var ev = await CreateTestEventAsync(totalSeats: 2);
+        var created = await _bookingService.CreateBookingAsync(ev.Id);
+        var bookingEntity = _bookingRepository.GetById(created.Id)!;
+        var eventEntity = _eventRepository.GetById(ev.Id)!;
+
+        eventEntity.AvailableSeats.Should().Be(1);
+
+        // Act
+        var rejectedBooking = bookingEntity.Reject();
+        _bookingRepository.Update(rejectedBooking);
+        eventEntity.ReleaseSeats();
+        _eventRepository.Update(eventEntity);
+
+        // Assert
+        var foundBooking = await _bookingService.GetBookingByIdAsync(created.Id);
+        foundBooking.Status.Should().Be(BookingStatus.Rejected);
+        foundBooking.ProcessedAt.Should().NotBeNull();
+        _eventRepository.GetById(ev.Id)!.AvailableSeats.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task CreateBookingAsync_AfterRejectAndReleaseSeats_CanBookReleasedSeat()
+    {
+        // Arrange
+        var ev = await CreateTestEventAsync(totalSeats: 1);
+        var firstBooking = await _bookingService.CreateBookingAsync(ev.Id);
+        var bookingEntity = _bookingRepository.GetById(firstBooking.Id)!;
+        var eventEntity = _eventRepository.GetById(ev.Id)!;
+
+        var rejectedBooking = bookingEntity.Reject();
+        _bookingRepository.Update(rejectedBooking);
+        eventEntity.ReleaseSeats();
+        _eventRepository.Update(eventEntity);
+
+        // Act
+        var secondBooking = await _bookingService.CreateBookingAsync(ev.Id);
+
+        // Assert
+        secondBooking.Should().NotBeNull();
+        secondBooking.Id.Should().NotBe(firstBooking.Id);
+        secondBooking.EventId.Should().Be(ev.Id);
+        secondBooking.Status.Should().Be(BookingStatus.Pending);
+        _eventRepository.GetById(ev.Id)!.AvailableSeats.Should().Be(0);
+    }
+    #endregion
+
+    #region Concurrency Tests
+    [Fact]
+    public async Task CreateBookingAsync_ConcurrentRequestsExceedingCapacity_PreventsOverbooking()
+    {
+        // Arrange
+        const int totalSeats = 5;
+        const int concurrentRequests = 20;
+        var ev = await CreateTestEventAsync(totalSeats: totalSeats);
+
+        var successfulBookings = new ConcurrentBag<BookingDto>();
+        var noSeatsExceptions = new ConcurrentBag<NoAvailableSeatsException>();
+
+        // Act
+        var tasks = Enumerable.Range(0, concurrentRequests)
+            .Select(_ => Task.Run(async () =>
+            {
+                try
+                {
+                    var booking = await _bookingService.CreateBookingAsync(ev.Id);
+                    successfulBookings.Add(booking);
+                }
+                catch (NoAvailableSeatsException ex)
+                {
+                    noSeatsExceptions.Add(ex);
+                }
+            }));
+
+        await Task.WhenAll(tasks);
+
+        // Assert
+        successfulBookings.Should().HaveCount(totalSeats);
+        successfulBookings.Select(b => b.Id).Should().OnlyHaveUniqueItems();
+        noSeatsExceptions.Should().HaveCount(concurrentRequests - totalSeats);
+        _eventRepository.GetById(ev.Id)!.AvailableSeats.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task CreateBookingAsync_ConcurrentRequestsMatchingCapacity_ReturnsUniqueIds()
+    {
+        // Arrange
+        const int totalSeats = 10;
+        var ev = await CreateTestEventAsync(totalSeats: totalSeats);
+
+        // Act
+        var tasks = Enumerable.Range(0, totalSeats)
+            .Select(_ => Task.Run(() => _bookingService.CreateBookingAsync(ev.Id)));
+
+        var bookings = await Task.WhenAll(tasks);
+
+        // Assert
+        bookings.Should().HaveCount(totalSeats);
+        bookings.Select(b => b.Id).Should().OnlyHaveUniqueItems();
+        _eventRepository.GetById(ev.Id)!.AvailableSeats.Should().Be(0);
     }
     #endregion
 
@@ -138,7 +303,7 @@ public class BookingServiceTests
     #endregion
 
     #region Helpers
-    private Task<EventDto> CreateTestEventAsync()
+    private Task<EventDto> CreateTestEventAsync(int totalSeats = 10)
     {
         var start = DateTime.UtcNow.AddDays(1);
         var dto = new CreateEventDto
@@ -146,7 +311,8 @@ public class BookingServiceTests
             Title = "Test Event",
             Description = "Test Description",
             StartAt = start,
-            EndAt = start.AddHours(2)
+            EndAt = start.AddHours(2),
+            TotalSeats = totalSeats
         };
         return _eventService.CreateAsync(dto);
     }

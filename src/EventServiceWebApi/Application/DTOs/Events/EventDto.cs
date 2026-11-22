@@ -37,4 +37,16 @@ public record EventDto
     /// <example>2026-10-02T11:00:00Z</example>
     [Required]
     public DateTime EndAt { get; init; }
+
+    /// <summary>
+    /// Total seats of the event. Must be greater than 0.
+    /// </summary>
+    [Required]
+    public int TotalSeats { get; init; }
+
+    /// <summary>
+    /// Available seats of the event.
+    /// </summary>
+    [Required]
+    public int AvailableSeats { get; init; }
 }

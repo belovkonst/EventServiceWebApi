@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using EventServiceWebApi.Application.Exceptions;
+using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 
 namespace EventServiceWebApi.Presentation.Middlewares;
@@ -72,7 +73,7 @@ public class GlobalExceptionHandlingMiddleware
                 StatusCodes.Status404NotFound,
                 "Not Found",
                 "https://tools.ietf.org/html/rfc9110#section-15.5.5"),
-            InvalidOperationException => (
+            InvalidOperationException or NoAvailableSeatsException => (
                 StatusCodes.Status409Conflict,
                 "Conflict",
                 "https://tools.ietf.org/html/rfc9110#section-15.5.10"),

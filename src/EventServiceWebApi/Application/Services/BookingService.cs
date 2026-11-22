@@ -1,4 +1,5 @@
 ﻿using EventServiceWebApi.Application.DTOs.Bookings;
+using EventServiceWebApi.Application.Exceptions;
 using EventServiceWebApi.Application.Interfaces;
 using EventServiceWebApi.Models;
 
@@ -7,31 +8,44 @@ namespace EventServiceWebApi.Application.Services;
 public class BookingService : IBookingService
 {
     private readonly IBookingRepository _bookings;
-    private readonly IEventService _eventService;
+    private readonly IEventRepository _eventRepository;
     private readonly ILogger<BookingService> _logger;
+    private readonly Lock _bookingLock = new();
 
-    public BookingService(IBookingRepository bookings, IEventService eventService, ILogger<BookingService> logger)
+    public BookingService(IBookingRepository bookings, IEventRepository eventRepository, ILogger<BookingService> logger)
     {
         _bookings = bookings;
-        _eventService = eventService;
+        _eventRepository = eventRepository;
         _logger = logger;
     }
 
-    public async Task<BookingDto> CreateBookingAsync(Guid eventId, CancellationToken ct = default)
+    public Task<BookingDto> CreateBookingAsync(Guid eventId, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        await _eventService.GetByIdAsync(eventId, ct);
+        Booking newBooking;
 
-        var newBooking = new Booking(eventId);
-
-        if (!_bookings.TryAdd(newBooking))
+        lock (_bookingLock)
         {
-            throw new InvalidOperationException($"Booking with id {newBooking.Id} already exists.");
+            var ev = _eventRepository.GetById(eventId);
+            if (ev == null)
+                throw new KeyNotFoundException($"Event with id {eventId} was not found.");
+
+            if (!ev.TryReserveSeats())
+                throw new NoAvailableSeatsException();
+            _eventRepository.Update(ev);
+
+            newBooking = new Booking(eventId);
+            if (!_bookings.TryAdd(newBooking))
+            {
+                ev.ReleaseSeats();
+                _eventRepository.Update(ev);
+                throw new InvalidOperationException($"Booking with id {newBooking.Id} already exists.");
+            }
         }
 
         _logger.LogInformation("Booking with id {BookingId} was created.", newBooking.Id);
-        return MapToDto(newBooking);
+        return Task.FromResult(MapToDto(newBooking));
     }
 
     public Task<BookingDto> GetBookingByIdAsync(Guid bookingId, CancellationToken ct = default)
