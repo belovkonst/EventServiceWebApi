@@ -1,4 +1,5 @@
 ﻿using EventServiceWebApi.Application.DTOs.Events;
+using EventServiceWebApi.Application.Interfaces;
 using EventServiceWebApi.Application.Repositories;
 using EventServiceWebApi.Application.Services;
 using EventServiceWebApi.Models;
@@ -10,15 +11,17 @@ namespace EventServiceWebApi.Tests;
 public class BookingServiceTests
 {
     private readonly EventService _eventService;
+    private readonly EventRepository _eventRepository;
     private readonly BookingRepository _bookingRepository;
     private readonly BookingService _bookingService;
 
 
     public BookingServiceTests()
     {
-        _eventService = new EventService(NullLogger<EventService>.Instance);
+        _eventRepository = new EventRepository();
+        _eventService = new EventService(_eventRepository, NullLogger<EventService>.Instance);
         _bookingRepository = new BookingRepository();
-        _bookingService = new BookingService(_bookingRepository, _eventService, NullLogger<BookingService>.Instance);
+        _bookingService = new BookingService(_bookingRepository, _eventRepository, NullLogger<BookingService>.Instance);
     }
 
     #region CreateBookingAsync Tests

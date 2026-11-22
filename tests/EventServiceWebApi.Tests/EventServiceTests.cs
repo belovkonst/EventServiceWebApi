@@ -1,17 +1,21 @@
-﻿using EventServiceWebApi.Application.Services;
-using Microsoft.Extensions.Logging.Abstractions;
+﻿using EventServiceWebApi.Application.DTOs.Events;
+using EventServiceWebApi.Application.Interfaces;
+using EventServiceWebApi.Application.Repositories;
+using EventServiceWebApi.Application.Services;
 using FluentAssertions;
-using EventServiceWebApi.Application.DTOs.Events;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace EventServiceWebApi.Tests;
 
 public class EventServiceTests
 {
     private readonly EventService _eventService;
+    private readonly EventRepository _eventRepository;
 
     public EventServiceTests()
     {
-        _eventService = new EventService(NullLogger<EventService>.Instance);
+        _eventRepository = new EventRepository();
+        _eventService = new EventService(_eventRepository, NullLogger<EventService>.Instance);
     }
 
     #region GetAllAsync Tests

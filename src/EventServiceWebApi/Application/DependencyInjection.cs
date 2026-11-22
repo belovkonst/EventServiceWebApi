@@ -10,6 +10,7 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.AddSingleton<IEventService, EventService>();
+        services.AddSingleton<IEventRepository, EventRepository>();
         services.AddSingleton<IBookingService, BookingService>();
         services.AddSingleton<IBookingRepository, BookingRepository>();
 

@@ -2,17 +2,17 @@
 using EventServiceWebApi.Application.DTOs.Events;
 using EventServiceWebApi.Application.Interfaces;
 using EventServiceWebApi.Models;
-using System.Collections.Concurrent;
 
 namespace EventServiceWebApi.Application.Services;
 
 public class EventService : IEventService
 {
-    private readonly ConcurrentDictionary<Guid, Event> _events = new();
+    private readonly IEventRepository _eventRepository;
     private readonly ILogger<EventService> _logger;
 
-    public EventService(ILogger<EventService> logger)
+    public EventService(IEventRepository eventRepository, ILogger<EventService> logger)
     {
+        _eventRepository = eventRepository;
         _logger = logger;
     }
 
@@ -21,7 +21,7 @@ public class EventService : IEventService
         ct.ThrowIfCancellationRequested();
 
         query ??= new EventQueryDto();
-        IEnumerable<Event> allEvents = _events.Values.Select(e => e.GetSnapshot());
+        IEnumerable<Event> allEvents = _eventRepository.GetAll().Select(e => e.GetSnapshot());
 
         if (!string.IsNullOrWhiteSpace(query.Title))
             allEvents = allEvents.Where(e => e.Title.Contains(query.Title, StringComparison.OrdinalIgnoreCase));
@@ -49,7 +49,8 @@ public class EventService : IEventService
     {
         ct.ThrowIfCancellationRequested();
 
-        if (!_events.TryGetValue(id, out var ev))
+        var ev = _eventRepository.GetById(id);
+        if (ev == null)
             throw new KeyNotFoundException($"Event with id {id} was not found.");
 
         return Task.FromResult<EventDto?>(MapToDto(ev));
@@ -67,10 +68,8 @@ public class EventService : IEventService
             dto.TotalSeats!.Value
             );
 
-        if (!_events.TryAdd(newEvent.Id, newEvent))
-        {
+        if (!_eventRepository.TryAdd(newEvent))
             throw new InvalidOperationException($"Event with id {newEvent.Id} already exists.");
-        }
 
         _logger.LogInformation("Event with id {EventId} was created.", newEvent.Id);
         return Task.FromResult(MapToDto(newEvent));
@@ -80,7 +79,8 @@ public class EventService : IEventService
     {
         ct.ThrowIfCancellationRequested();
 
-        if (!_events.TryGetValue(id, out var existingEvent))
+        var existingEvent = _eventRepository.GetById(id);
+        if (existingEvent == null)
             throw new KeyNotFoundException($"Event with id {id} was not found.");
 
         existingEvent.Update(
@@ -89,6 +89,7 @@ public class EventService : IEventService
             dto.StartAt!.Value,
             dto.EndAt!.Value
             );
+        _eventRepository.Update(existingEvent);
             
         _logger.LogInformation("Event with id {EventId} was updated.", id);
         return Task.FromResult<EventDto?>(MapToDto(existingEvent));
@@ -98,7 +99,7 @@ public class EventService : IEventService
     {
         ct.ThrowIfCancellationRequested();
 
-        if (!_events.TryRemove(id, out _))
+        if(!_eventRepository.TryRemove(id))
             throw new KeyNotFoundException($"Event with id {id} was not found.");
 
         _logger.LogInformation("Event with id {EventId} was deleted.", id);
